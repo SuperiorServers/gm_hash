@@ -1,11 +1,49 @@
 ﻿#include "GarrysMod/Lua/Interface.h"
-#include <stdio.h>
+#include <time.h>
 
+#include "tier1/checksum_md5.h"
 #include "md5.h"
 #include "sha256.h"
 #include "sha512.h"
 
 using namespace GarrysMod::Lua;
+
+static const char* chars = "0123456789!@#$%^&*ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+int hash_Salt(lua_State* state)
+{
+	if (LUA->CheckNumber(1))
+	{
+		unsigned count = LUA->GetNumber(1);
+		char* salt = new char[count];
+
+		srand(time(NULL));
+		for (unsigned i = 0;  i < count; ++i)
+		{
+			salt[i] = chars['a' + rand() % 26];
+		}
+
+		LUA->PushString(salt, count);
+
+		delete[] salt;
+
+		return 1;
+	}
+
+	return 0;
+}
+
+int hash_PseudoRandom(lua_State* state)
+{
+	if (LUA->CheckNumber(1))
+	{
+		LUA->PushNumber((double)MD5_PseudoRandom((unsigned int)LUA->GetNumber(1)));
+		return 1;
+	}
+
+	return 0;
+}
+
 
 int hash_MD5(lua_State* state)
 {
@@ -44,6 +82,12 @@ GMOD_MODULE_OPEN()
 {
 	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		LUA->CreateTable();
+		
+			//LUA->PushCFunction(hash_Salt);
+			//LUA->SetField(-2, "Salt");
+
+			LUA->PushCFunction(hash_PseudoRandom);
+			LUA->SetField(-2, "PseudoRandom");
 
 			LUA->PushCFunction(hash_MD5);
 			LUA->SetField(-2, "MD5");
